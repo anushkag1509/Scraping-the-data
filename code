@@ -1,0 +1,41 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+
+base_url = "https://hprera.nic.in/PublicDashboard"
+response = requests.get(base_url, verify=False)
+soup = BeautifulSoup(response.text, 'html.parser')
+project_links = soup.find_all('a', href=True, class_='name-link')
+project_links = project_links[:6]
+data = []
+
+for link in project_links:
+    project_url = "https://hprera.nic.in" + link['href']
+    project_response = requests.get(project_url, verify=False)
+    project_soup = BeautifulSoup(project_response.text, 'html.parser')
+    try:
+        name = project_soup.find('span', id='lblPromoterName').text.strip()
+    except AttributeError:
+        name = "N/A"   
+    try:
+        gstin_no = project_soup.find('span', id='lblGSTIN').text.strip()
+    except AttributeError:
+        gstin_no = "N/A"  
+    try:
+        pan_no = project_soup.find('span', id='lblPAN').text.strip()
+    except AttributeError:
+        pan_no = "N/A"   
+    try:
+        permanent_address = project_soup.find('span', id='lblPromoterAddress').text.strip()
+    except AttributeError:
+        permanent_address = "N/A"
+    data.append({
+        "Project Name": link.text.strip(),
+        "Name": name,
+        "GSTIN No": gstin_no,
+        "PAN No": pan_no,
+        "Permanent Address": permanent_address
+    })
+df = pd.DataFrame(data)
+df.to_excel('registered_projects.xlsx', index=False)
+print("Scraping completed! The data has been saved to 'registered_projects.xlsx'.")
